@@ -755,3 +755,10 @@ body.no-trip-selected .trip-selector-modal .modal-close{display:none}
 .trip-login-msg{font-size:12px;color:#94a3b8;margin-bottom:14px;line-height:1.5}
 .trip-card-locked{cursor:not-allowed !important;opacity:.55}
 .trip-card-locked:hover{transform:none !important;box-shadow:none !important}
+
+/* Trip selector 모달은 정중앙 정렬 (다른 모달은 바텀 시트 유지) */
+.modal-overlay.trip-selector-overlay.visible{align-items:center !important;padding:20px}
+.trip-selector-overlay .trip-selector-modal{max-height:85vh;overflow-y:auto;border-radius:18px !important;margin:0 auto;width:100%;max-width:480px}
+@media (max-width:520px){
+  .trip-selector-overlay .trip-selector-modal{max-width:calc(100vw - 32px)}
+}
