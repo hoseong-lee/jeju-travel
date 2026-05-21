@@ -719,3 +719,29 @@
 .trip-card-name{font-size:14px;font-weight:800;letter-spacing:-.3px;margin-bottom:3px}
 .trip-card-date{font-size:11px;color:#94a3b8;font-weight:500}
 .trip-card-stats{font-size:10px;color:#64748b;margin-top:4px;font-weight:600}
+
+/* ══════ 랜딩 (trip 미선택) 상태: 헤더 아래 콘텐츠 숨김 ══════ */
+body.no-trip-selected .weather-bar,
+body.no-trip-selected .view-tabs,
+body.no-trip-selected .day-selector,
+body.no-trip-selected .edit-toolbar,
+body.no-trip-selected #dashboardView,
+body.no-trip-selected #timelineView,
+body.no-trip-selected #mapView,
+body.no-trip-selected #routeView,
+body.no-trip-selected #budgetView,
+body.no-trip-selected #prepView,
+body.no-trip-selected #phraseView,
+body.no-trip-selected #sosView,
+body.no-trip-selected #tipsSection,
+body.no-trip-selected .currency-toggle,
+body.no-trip-selected .currency-widget,
+body.no-trip-selected .header-actions{display:none !important}
+body.no-trip-selected .header{padding-bottom:24px}
+body.no-trip-selected .header-title{font-size:22px;text-align:center}
+body.no-trip-selected .header-date{text-align:center;color:#94a3b8;font-weight:600}
+/* selector 모달은 랜딩에서 닫기 버튼 숨김 — 강제 선택 */
+body.no-trip-selected .trip-selector-modal .modal-close{display:none}
+
+/* trip 변경 버튼 */
+#tripSwitchBtn{font-size:18px !important}

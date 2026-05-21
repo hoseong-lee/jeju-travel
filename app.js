@@ -58,8 +58,14 @@ function setCurrentTrip(tripId){
   TRIP_END=m.endDate?new Date(m.endDate):new Date();
   DEFAULT_PACKING=PACKING_TEMPLATES[trip.id]||{};
   DEFAULT_SHOPPING=SHOPPING_TEMPLATES[trip.id]||{};
+  // trip-assets.js에서 phrases / sosContacts / transportDetails 가져오기
+  const assets=(window.TRIP_ASSETS&&window.TRIP_ASSETS[trip.id])||{};
+  PHRASES=assets.phrases||{};
+  SOS_CONTACTS=assets.sosContacts||[];
+  TRANSPORT_DETAILS=assets.transportDetails||{};
   // 회화 기본 언어
-  if(typeof phraseLang!=='undefined'&&m.defaultPhraseLang)phraseLang=m.defaultPhraseLang;
+  if(m.defaultPhraseLang)phraseLang=m.defaultPhraseLang;
+  else{const langs=Object.keys(PHRASES);if(langs.length)phraseLang=langs[0]}
   try{localStorage.setItem('travel_current_trip_id',trip.id)}catch(e){}
   return true
 }
@@ -300,16 +306,10 @@ function saveDay(){const date=document.getElementById('d-date').value.trim(),reg
 function closeDayModal(){document.getElementById('dayModalOverlay').classList.remove('visible')}
 function deleteCurrentDay(){if(DAYS.length<=1){showToast('최소 1일 필요');return}if(!confirm(`DAY ${currentDay+1} (${DAYS[currentDay].date})를 삭제할까요?`))return;DAYS.splice(currentDay,1);if(currentDay>=DAYS.length)currentDay=DAYS.length-1;saveToLocal();render();showToast('날짜 삭제')}
 
-// ══════════ PHRASE CHEATSHEET (제주 사투리/현지 표현) ══════════
+// ══════════ PHRASE CHEATSHEET ══════════
+// PHRASES는 trip-assets.js에서 정의된 TRIP_ASSETS[tripId].phrases로 setCurrentTrip이 채움
 let phraseLang='jeju';
-const PHRASES={jeju:{name:'제주 사투리 🍊',sections:{'👋 인사/기본':[
-{ko:'안녕하세요',local:'안녕허우꽈?',pron:'안녕허우꽈'},{ko:'반갑수다',local:'반갑수다',pron:'반갑수다'},{ko:'어디서 오셨어요?',local:'어디서 오십디강?',pron:'어디서 오십디강'},{ko:'고맙습니다',local:'고맙수다',pron:'고맙수다'},{ko:'안녕히 가세요',local:'잘 갑서양',pron:'잘 갑서양'},{ko:'아이가 귀엽다',local:'아기 곱다',pron:'아기 곱다'}],
-'🍽️ 식당/주문':[
-{ko:'이거 뭐예요?',local:'이거 뭐꽈?',pron:'이거 뭐꽈'},{ko:'맛있다',local:'맛조수다',pron:'맛조수다'},{ko:'배부르다',local:'베불러수다',pron:'베불러수다'},{ko:'천천히 드세요',local:'쉬멍쉬멍 드십서',pron:'쉬멍쉬멍 드십서'}],
-'🐬 자연/관광':[
-{ko:'바람이 많다',local:'보름이 쎄다',pron:'보름이 쎄다'},{ko:'바다가 예쁘다',local:'바당이 곱다',pron:'바당이 곱다'},{ko:'돌고래',local:'곰생이',pron:'곰생이 (남방큰돌고래)'},{ko:'한라산',local:'한라산',pron:'한라산'}],
-'🚨 긴급':[
-{ko:'경찰',local:'112',pron:''},{ko:'구급/소방',local:'119',pron:''},{ko:'관광 안내',local:'1330',pron:'한국관광공사 24시'},{ko:'제주 관광경찰',local:'064-746-1234',pron:''}]}}};
+let PHRASES={};
 function renderPhraseView(){const el=document.getElementById('phraseView');const lang=PHRASES[phraseLang];
 const tabs=`<div class="phrase-lang-tabs">${Object.entries(PHRASES).map(([k,v])=>`<button class="phrase-lang-tab ${k===phraseLang?'active':''}" onclick="phraseLang='${k}';renderPhraseView()">${v.name}</button>`).join('')}</div>`;
 const sections=Object.entries(lang.sections).map(([title,phrases])=>`<div class="phrase-section"><div class="phrase-section-title">${title}</div>${phrases.map(p=>`<div class="phrase-card" onclick="if(speechSynthesis){const u=new SpeechSynthesisUtterance('${p.local.replace(/'/g,"\\'")}');u.lang='ko-KR';speechSynthesis.speak(u)}"><div class="phrase-ko">${esc(p.ko)}</div><div class="phrase-local">${esc(p.local)}</div>${p.pron?`<div class="phrase-pron">🔊 ${esc(p.pron)}</div>`:''}</div>`).join('')}</div>`).join('');
@@ -581,15 +581,8 @@ el.innerHTML=`<div class="prep-title" style="text-align:center;margin-bottom:6px
 </div>${statusSummaryHtml}${deadlineHtml}${todayHtml}${warnHtml}`}
 
 // ══════════ SOS / EMERGENCY ══════════
-const SOS_CONTACTS=[
-{icon:'🚔',title:'경찰',sub:'범죄/사고/도난 신고',tel:'112',bg:'rgba(239,68,68,.08)',border:'rgba(239,68,68,.2)',btnBg:'rgba(239,68,68,.2)',btnColor:'#f87171'},
-{icon:'🚑',title:'구급/소방',sub:'화재·응급의료',tel:'119',bg:'rgba(239,68,68,.08)',border:'rgba(239,68,68,.2)',btnBg:'rgba(239,68,68,.2)',btnColor:'#f87171'},
-{icon:'🏛️',title:'관광 안내 (1330)',sub:'한국관광공사 24시 · 영중일 가능',tel:'1330',bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.25)',btnBg:'rgba(59,130,246,.2)',btnColor:'#60a5fa'},
-{icon:'👮',title:'제주 관광경찰',sub:'관광지 안전·민원',tel:'06474612345',bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.25)',btnBg:'rgba(59,130,246,.2)',btnColor:'#60a5fa'},
-{icon:'🏥',title:'제주대학교병원',sub:'응급실 24시 운영',tel:'0647172000',bg:'rgba(16,185,129,.08)',border:'rgba(16,185,129,.2)',btnBg:'rgba(16,185,129,.2)',btnColor:'#34d399'},
-{icon:'🚗',title:'쏘카 고객센터',sub:'사고/고장 신고',tel:'15660001',bg:'rgba(245,166,35,.08)',border:'rgba(245,166,35,.2)',btnBg:'rgba(245,166,35,.2)',btnColor:'#F5A623'},
-{icon:'🪑',title:'퓨어베베 카시트',sub:'반납/문의',tel:'',bg:'rgba(139,92,246,.08)',border:'rgba(139,92,246,.2)',btnBg:'rgba(139,92,246,.2)',btnColor:'#c4b5fd'},
-{icon:'💳',title:'카드 분실 신고',sub:'각 카드사 콜센터로 즉시 연락',tel:'',bg:'rgba(245,166,35,.08)',border:'rgba(245,166,35,.2)',btnBg:'rgba(245,166,35,.2)',btnColor:'#F5A623'}];
+// SOS_CONTACTS는 trip-assets.js에서 setCurrentTrip이 채움
+let SOS_CONTACTS=[];
 function renderSOSView(){const el=document.getElementById('sosView');
 const docPhotos=JSON.parse(localStorage.getItem('travel_jeju_sos_doc_photos')||'{}');
 const contacts=SOS_CONTACTS.map(c=>`<div class="sos-card" style="background:${c.bg};border:1px solid ${c.border}"><div class="sos-card-icon">${c.icon}</div><div class="sos-card-body"><div class="sos-card-title">${c.title}</div><div class="sos-card-sub">${c.sub}</div></div>${c.tel?`<a class="sos-call" href="tel:${c.tel}" style="background:${c.btnBg};color:${c.btnColor}" onclick="event.stopPropagation()">📞 전화</a>`:''}</div>`).join('');
@@ -605,25 +598,33 @@ function getLocalTimeStr(time,fromTZ,toTZ){return''} // 시차 없음
 function getDayTZ(dayIdx){return'KST'}
 
 // ══════════ WEATHER API ══════════
+// trip 메타의 liveWeatherCities를 사용 — {tripCityKey:{lat,lon,name}}
 const OWM_KEY='0879f0fa07ee97e12475987024444693';
-const CITY_COORDS={jeju_west:{lat:33.34,lon:126.21},jeju_city:{lat:33.49,lon:126.50}};
 let weatherCache2={};
-function fetchLiveWeather(){if(!OWM_KEY){renderWeather();return}
-Object.entries(CITY_COORDS).forEach(([city,{lat,lon}])=>{fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OWM_KEY}&units=metric&lang=kr`).then(r=>r.json()).then(data=>{if(data.list){weatherCache2[city]=data.list;renderLiveWeather()}}).catch(()=>{})})}
-function renderLiveWeather(){if(!Object.keys(weatherCache2).length){renderWeather();return}
-const icons={'01':'☀️','02':'🌤️','03':'⛅','04':'☁️','09':'🌧️','10':'🌦️','11':'⛈️','13':'🌨️','50':'🌫️'};
-const cityNames={jeju_west:'제주 서부',jeju_city:'제주 시내'};
-document.getElementById('weatherBar').innerHTML=Object.entries(weatherCache2).map(([city,list])=>{const today=list[0];const iconCode=today.weather[0].icon.slice(0,2);const temp=`${Math.round(today.main.temp_min)}~${Math.round(today.main.temp_max)}°C`;
-return`<div class="weather-card"><div class="weather-city">${cityNames[city]||city}</div><div class="weather-icon">${icons[iconCode]||'🌡️'}</div><div class="weather-temp">${temp}</div><div class="weather-desc">${today.weather[0].description}</div></div>`}).join('')}
+function fetchLiveWeather(){
+  if(!OWM_KEY){renderWeather();return}
+  const trip=getCurrentTrip();
+  const cities=(trip&&trip.meta&&trip.meta.liveWeatherCities)||{};
+  weatherCache2={};
+  Object.entries(cities).forEach(([city,c])=>{
+    fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${c.lat}&lon=${c.lon}&appid=${OWM_KEY}&units=metric&lang=kr`).then(r=>r.json()).then(data=>{if(data.list){weatherCache2[city]=data.list;renderLiveWeather()}}).catch(()=>{})
+  })
+}
+function renderLiveWeather(){
+  if(!Object.keys(weatherCache2).length){renderWeather();return}
+  const icons={'01':'☀️','02':'🌤️','03':'⛅','04':'☁️','09':'🌧️','10':'🌦️','11':'⛈️','13':'🌨️','50':'🌫️'};
+  const trip=getCurrentTrip();
+  const cities=(trip&&trip.meta&&trip.meta.liveWeatherCities)||{};
+  document.getElementById('weatherBar').innerHTML=Object.entries(weatherCache2).map(([city,list])=>{
+    const today=list[0];const iconCode=today.weather[0].icon.slice(0,2);const temp=`${Math.round(today.main.temp_min)}~${Math.round(today.main.temp_max)}°C`;
+    const cityLabel=(cities[city]&&cities[city].name)||city;
+    return`<div class="weather-card"><div class="weather-city">${cityLabel}</div><div class="weather-icon">${icons[iconCode]||'🌡️'}</div><div class="weather-temp">${temp}</div><div class="weather-desc">${today.weather[0].description}</div></div>`
+  }).join('')
+}
 
 // ══════════ TRANSPORT DETAILS ══════════
-const TRANSPORT_DETAILS={
-'쏘카 픽업':{routes:['제주공항 쏘카 스토어'],fare:'188,790원 (3박4일)',interval:'14:40 픽업',taxi:''},
-'쏘카 반납':{routes:['제주공항 쏘카 스토어'],fare:'',interval:'19:30까지 반납',taxi:''},
-'카시트 픽업':{routes:['퓨어베베 매장 (공항 3.8km)'],fare:'24,000원',interval:'15:00 픽업',taxi:''},
-'카시트 반납':{routes:['퓨어베베 매장'],fare:'',interval:'19:00까지 반납',taxi:''},
-'김포→제주':{routes:['진에어 LJ'],fare:'222,000원 (왕복)',interval:'1시간 15분',taxi:''},
-'제주→김포':{routes:['제주항공 7C'],fare:'(왕복 포함)',interval:'1시간 15분',taxi:''}};
+// TRANSPORT_DETAILS는 trip-assets.js에서 setCurrentTrip이 채움
+let TRANSPORT_DETAILS={};
 
 // ══════════ GOOGLE CALENDAR (.ics) EXPORT ══════════
 function exportICS(){
@@ -805,15 +806,33 @@ function selectTrip(tripId){
   render();
   updateDDay();
   fetchLiveWeather();
+  // 현재 보이는 뷰가 회화/SOS면 다시 렌더해서 새 trip 콘텐츠 반영
+  if(currentView==='phrase')renderPhraseView();
+  if(currentView==='sos')renderSOSView();
+  if(currentView==='prep')renderPrepView();
+  if(currentView==='dashboard')renderDashboard();
   // Firebase 연결되어 있으면 trip-scoped 리스너 재설정
   if(fbUser){detachListeners();fetchRemoteThenSync().then(()=>listenForChanges())}
 }
 function applyTripMetaToUI(){
-  const t=getCurrentTrip();if(!t)return;
+  const t=getCurrentTrip();
+  // trip 없는 상태 (랜딩) — 헤더는 기본값, 일정/탭은 숨기고 selector만 노출
+  if(!t||!currentTripId){
+    document.title='✈️ 여행 플래너';
+    const titleEl=document.querySelector('.header-title');if(titleEl)titleEl.textContent='✈️ 여행 플래너';
+    const dateEl=document.querySelector('.header-date');if(dateEl)dateEl.innerHTML='여행을 선택하세요 <span class="dday" id="ddayBadge"></span>';
+    document.body.classList.add('no-trip-selected');
+    return
+  }
   const m=t.meta||{};
+  // 브라우저 탭 타이틀
+  document.title=(m.coverEmoji?m.coverEmoji+' ':'')+(m.shortName||m.name||'여행 플래너')+' · 플래너';
   const titleEl=document.querySelector('.header-title');if(titleEl)titleEl.textContent=m.name||'여행 플래너';
   const dateEl=document.querySelector('.header-date');if(dateEl){const ddayBadge='<span class="dday" id="ddayBadge"></span>';dateEl.innerHTML=esc(m.dateRange||'')+' '+ddayBadge}
   const tipsBody=document.querySelector('#tipsSection .tips-body');if(tipsBody&&m.tipsHtml)tipsBody.innerHTML=m.tipsHtml;
+  // 헤더 컬러 (theme color)
+  document.documentElement.style.setProperty('--trip-color',m.themeColor||'#E8725A');
+  document.body.classList.remove('no-trip-selected');
   // 트립 변경 버튼이 헤더 액션에 없으면 추가
   if(!document.getElementById('tripSwitchBtn')){
     const actions=document.querySelector('.header-actions');
@@ -825,11 +844,19 @@ function applyTripMetaToUI(){
 
 // ══════════ INIT ══════════
 loadFromLocal();
-// 저장된 currentTripId 복원 (없으면 첫 trip 사용)
+// 저장된 currentTripId 복원 — 없으면 랜딩(selector) 모드로 진입, 자동 폴백 X
 let savedTripId=null;try{savedTripId=localStorage.getItem('travel_current_trip_id')}catch(e){}
-if(!savedTripId||!TRIPS.find(t=>t.id===savedTripId))savedTripId=(TRIPS[0]&&TRIPS[0].id)||null;
-if(savedTripId)setCurrentTrip(savedTripId);
-migrateStatus(DAYS);applyTripMetaToUI();render();updateDDay();fetchLiveWeather();initFirebase();fetchExchangeRate();restoreTheme();
+if(savedTripId&&TRIPS.find(t=>t.id===savedTripId)){
+  setCurrentTrip(savedTripId);
+  migrateStatus(DAYS);
+  applyTripMetaToUI();
+  render();updateDDay();fetchLiveWeather();
+}else{
+  // 첫 진입 — trip selector 자동 노출
+  applyTripMetaToUI(); // no-trip-selected 클래스 추가
+  setTimeout(()=>openTripSelector(),100);
+}
+initFirebase();fetchExchangeRate();restoreTheme();
 document.addEventListener('click',hideContextMenu);
 document.addEventListener('click',e=>{const wrap=document.querySelector('.map-search-wrap');if(wrap&&!wrap.contains(e.target)){const r=document.getElementById('mapSearchResults');if(r)r.classList.remove('visible')}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSearch();hideContextMenu();const r=document.getElementById('mapSearchResults');if(r)r.classList.remove('visible')}});

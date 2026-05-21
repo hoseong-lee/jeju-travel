@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0f172a">
 <link rel="manifest" href="manifest.json">
-<title>🍊 제주 여행 플래너</title>
+<title id="docTitle">✈️ 여행 플래너</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -27,8 +27,8 @@
 <div class="presence-bar" id="presenceBar"><span class="presence-dot"></span><span id="presenceText"></span></div>
 <div class="header">
   <div class="header-sub">Travel Planner 2026</div>
-  <div class="header-title">🍊 제주 가족여행 플래너</div>
-  <div class="header-date">2026.06.01 — 06.04 · 3박4일 <span class="dday" id="ddayBadge"></span></div>
+  <div class="header-title">✈️ 여행 플래너</div>
+  <div class="header-date">— <span class="dday" id="ddayBadge"></span></div>
   <div class="header-actions">
     <button class="header-action-btn" onclick="openSearch()" title="검색">🔍</button>
     <button class="header-action-btn" id="themeToggleBtn" onclick="toggleTheme()" title="테마 전환">🌙</button>
@@ -182,6 +182,7 @@
 <div class="swipe-indicator" id="swipeIndicator"></div>
 <div class="toast" id="toast"></div>
 <script src="trip-data.js"></script>
+<script src="trip-assets.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
