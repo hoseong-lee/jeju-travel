@@ -762,3 +762,14 @@ body.no-trip-selected .trip-selector-modal .modal-close{display:none}
 @media (max-width:520px){
   .trip-selector-overlay .trip-selector-modal{max-width:calc(100vw - 32px)}
 }
+
+/* trip 카드 우측 액션 (편집/삭제) */
+.trip-card{position:relative}
+.trip-card-actions{display:flex;gap:4px;flex-shrink:0;margin-left:auto}
+.trip-card-act-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#94a3b8;font-size:14px;padding:5px 8px;border-radius:8px;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;transition:background .15s,color .15s}
+.trip-card-act-btn:hover{background:rgba(255,255,255,.1);color:#f1f5f9}
+.trip-card-act-del:hover{background:rgba(239,68,68,.15);color:#f87171}
+/* "+ 새 여행 추가" 카드 */
+.trip-card-add{border-color:rgba(52,211,153,.25) !important;background:rgba(52,211,153,.06) !important;border-style:dashed !important}
+.trip-card-add:hover,.trip-card-add:active{background:rgba(52,211,153,.12) !important}
+.trip-card-add .trip-card-emoji{color:#34d399}

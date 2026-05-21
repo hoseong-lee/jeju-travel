@@ -1,4 +1,4 @@
-const CACHE_NAME = 'travel-planner-v3-multitrip';
+const CACHE_NAME = 'travel-planner-v4-tripcrud';
 const STATIC_ASSETS = [
   './',
   './index.html',

@@ -803,12 +803,17 @@ function openTripSelector(){
   }else{
     const accessible=TRIPS.filter(t=>canAccessTrip(t));
     const restricted=TRIPS.filter(t=>!canAccessTrip(t));
-    const cardHtml=t=>{const m=t.meta||{};const cnt=(t.days||[]).reduce((s,d)=>s+(d.schedule||[]).length,0);const active=t.id===currentTripId?' trip-card-active':'';return`<div class="trip-card${active}" style="border-color:${m.themeColor||'#888'}33;background:${m.themeColor||'#888'}11" onclick="selectTrip('${t.id}')">
-      <div class="trip-card-emoji">${m.coverEmoji||'✈️'}</div>
-      <div class="trip-card-body">
+    const isSeedTrip=id=>(window.DEFAULT_TRIPS||[]).some(t=>t.id===id);
+    const cardHtml=t=>{const m=t.meta||{};const cnt=(t.days||[]).reduce((s,d)=>s+(d.schedule||[]).length,0);const active=t.id===currentTripId?' trip-card-active':'';const userTrip=!isSeedTrip(t.id);return`<div class="trip-card${active}" style="border-color:${m.themeColor||'#888'}33;background:${m.themeColor||'#888'}11">
+      <div class="trip-card-emoji" onclick="selectTrip('${t.id}')">${m.coverEmoji||'✈️'}</div>
+      <div class="trip-card-body" onclick="selectTrip('${t.id}')">
         <div class="trip-card-name" style="color:${m.themeColor||'#f1f5f9'}">${esc(m.name||t.id)}</div>
         <div class="trip-card-date">${esc(m.dateRange||'')}</div>
         <div class="trip-card-stats">${(t.days||[]).length}일 · ${cnt}개 일정</div>
+      </div>
+      <div class="trip-card-actions">
+        <button class="trip-card-act-btn" onclick="event.stopPropagation();openTripForm('${t.id}')" title="편집">✏️</button>
+        ${userTrip?`<button class="trip-card-act-btn trip-card-act-del" onclick="event.stopPropagation();deleteTrip('${t.id}')" title="삭제">🗑️</button>`:''}
       </div>
     </div>`};
     const lockedHtml=t=>{const m=t.meta||{};return`<div class="trip-card trip-card-locked" title="이 여행은 멤버 전용입니다">
@@ -819,11 +824,134 @@ function openTripSelector(){
         <div class="trip-card-stats" style="color:#475569">멤버 전용</div>
       </div>
     </div>`};
-    bodyHtml=accessible.map(cardHtml).join('')+restricted.map(lockedHtml).join('');
-    if(!accessible.length)bodyHtml=`<div class="trip-login-prompt"><div class="trip-login-icon">🚫</div><div class="trip-login-msg">${esc(fbUser.email)} 계정으로 접근 가능한 여행이 없어요.</div></div>`+bodyHtml;
+    const addCard=`<div class="trip-card trip-card-add" onclick="openTripForm()">
+      <div class="trip-card-emoji">➕</div>
+      <div class="trip-card-body">
+        <div class="trip-card-name" style="color:#34d399">새 여행 추가</div>
+        <div class="trip-card-date">이름·기간·색상을 입력해 시작</div>
+        <div class="trip-card-stats">코드 수정 없이 앱에서 바로</div>
+      </div>
+    </div>`;
+    bodyHtml=accessible.map(cardHtml).join('')+addCard+restricted.map(lockedHtml).join('');
+    if(!accessible.length&&!restricted.length)bodyHtml=`<div class="trip-login-prompt"><div class="trip-login-icon">🚫</div><div class="trip-login-msg">${esc(fbUser.email)} 계정으로 접근 가능한 여행이 없어요. 아래에서 새로 추가하세요.</div></div>`+addCard;
   }
   el.querySelector('.trip-selector-list').innerHTML=bodyHtml;
   el.classList.add('visible')
+}
+
+// ══════════ TRIP CREATE / EDIT / DELETE ══════════
+let editingTripId=null;
+function openTripForm(tripId){
+  editingTripId=tripId||null;
+  const overlay=document.getElementById('tripFormOverlay');if(!overlay)return;
+  const titleEl=document.getElementById('tripFormTitle');
+  const saveBtn=document.getElementById('tripFormSaveBtn');
+  if(tripId){
+    const t=TRIPS.find(x=>x.id===tripId);if(!t)return;
+    const m=t.meta||{};
+    titleEl.textContent='✏️ 여행 편집';
+    saveBtn.textContent='저장';
+    document.getElementById('ct-emoji').value=m.coverEmoji||'✈️';
+    document.getElementById('ct-name').value=(m.name||'').replace(/^[^\sA-Z가-힣]+\s*/,'').trim();
+    document.getElementById('ct-short').value=m.shortName||'';
+    document.getElementById('ct-start').value=m.startDate||'';
+    document.getElementById('ct-end').value=m.endDate||'';
+    document.getElementById('ct-color').value=m.themeColor||'#10B981';
+    document.getElementById('ct-currency').value=(m.currency&&m.currency.code)||'KRW';
+    document.getElementById('ct-emails').value=(m.allowedEmails||[]).filter(e=>e!==(fbUser&&fbUser.email)).join(', ');
+  }else{
+    titleEl.textContent='➕ 새 여행 추가';
+    saveBtn.textContent='생성';
+    document.getElementById('ct-emoji').value='✈️';
+    ['ct-name','ct-short','ct-start','ct-end','ct-emails'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('ct-color').value='#10B981';
+    document.getElementById('ct-currency').value='KRW';
+  }
+  overlay.classList.add('visible');
+}
+function closeTripForm(){const el=document.getElementById('tripFormOverlay');if(el)el.classList.remove('visible');editingTripId=null}
+function saveTripForm(){
+  const emoji=(document.getElementById('ct-emoji').value||'').trim()||'✈️';
+  const nameRaw=document.getElementById('ct-name').value.trim();
+  const shortName=document.getElementById('ct-short').value.trim()||nameRaw;
+  const start=document.getElementById('ct-start').value;
+  const end=document.getElementById('ct-end').value;
+  const color=document.getElementById('ct-color').value||'#10B981';
+  const currencyCode=document.getElementById('ct-currency').value||'KRW';
+  const extraEmails=document.getElementById('ct-emails').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!nameRaw||!start||!end){showToast('이름·시작일·종료일은 필수입니다');return}
+  if(new Date(end)<new Date(start)){showToast('종료일이 시작일보다 빠를 수 없습니다');return}
+  const currencyMap={KRW:{symbol:'₩',defaultRate:1,apiEnabled:false},EUR:{symbol:'€',defaultRate:1450,apiEnabled:true},USD:{symbol:'$',defaultRate:1380,apiEnabled:false},JPY:{symbol:'¥',defaultRate:10,apiEnabled:false}};
+  const cur={code:currencyCode,...currencyMap[currencyCode]};
+  const dateRange=`${start.replace(/-/g,'.')} — ${end.replace(/-/g,'.')}`;
+  // 자체 이메일 + 추가 이메일 (중복 제거)
+  const me=fbUser&&fbUser.email;
+  const allowedEmails=Array.from(new Set([me,...extraEmails].filter(Boolean)));
+  if(editingTripId){
+    const t=TRIPS.find(x=>x.id===editingTripId);if(!t)return;
+    t.meta=Object.assign({},t.meta||{},{
+      name:emoji+' '+nameRaw,
+      shortName,
+      coverEmoji:emoji,
+      startDate:start,endDate:end,dateRange,
+      themeColor:color,
+      currency:cur,
+      allowedEmails
+    });
+    saveToLocalOnly();
+    closeTripForm();
+    if(currentTripId===editingTripId){applyTripMetaToUI();render();updateDDay()}
+    openTripSelector();
+    showToast('여행 정보 수정 완료');
+  }else{
+    // 새 trip 생성: id = name-slug + 시작연도
+    const slug=(shortName||nameRaw).toLowerCase().replace(/[^a-z0-9가-힣]+/gi,'-').replace(/^-+|-+$/g,'')||'trip';
+    const year=new Date(start).getFullYear();
+    let id=`${slug}-${year}`;let n=2;while(TRIPS.find(t=>t.id===id))id=`${slug}-${year}-${n++}`;
+    const newTrip={
+      id,
+      meta:{
+        name:emoji+' '+nameRaw,
+        shortName,
+        coverEmoji:emoji,
+        dateRange,startDate:start,endDate:end,
+        themeColor:color,
+        allowedEmails,
+        currency:cur,
+        timezone:{default:'KST',hourOffsets:{KST:9},regionMap:[]},
+        mapBounds:{center:[36.5,127.5],zoom:7,viewbox:'124,39,132,33'},
+        prefetchAreas:[],
+        weatherStatic:[],
+        liveWeatherCities:{},
+        defaultPhraseLang:'',
+        sosHeaderHtml:'',
+        taxRefund:{enabled:false},
+        dColorOptions:[{value:color,label:'기본'},{value:'#10B981',label:'초록'},{value:'#F5A623',label:'옐로'},{value:'#888',label:'회색'}],
+        tipsHtml:''
+      },
+      days:[]
+    };
+    TRIPS.push(newTrip);
+    saveToLocalOnly();
+    closeTripForm();
+    selectTrip(id);
+    showToast(`"${nameRaw}" 여행 생성 완료`);
+  }
+}
+function deleteTrip(tripId){
+  const trip=TRIPS.find(t=>t.id===tripId);if(!trip)return;
+  const isSeed=(window.DEFAULT_TRIPS||[]).some(t=>t.id===tripId);
+  if(isSeed){showToast('시드 여행은 삭제할 수 없어요 (편집은 가능)');return}
+  if(!confirm(`"${trip.meta&&trip.meta.name||tripId}" 여행을 삭제할까요?\n저장된 일정·지출도 모두 삭제됩니다.`))return;
+  TRIPS=TRIPS.filter(t=>t.id!==tripId);
+  if(currentTripId===tripId){
+    currentTripId=null;DAYS=[];
+    try{localStorage.removeItem('travel_current_trip_id')}catch(e){}
+    applyTripMetaToUI();
+  }
+  saveToLocalOnly();
+  openTripSelector();
+  showToast('여행 삭제 완료');
 }
 function closeTripSelector(){const el=document.getElementById('tripSelectorOverlay');if(el)el.classList.remove('visible')}
 function selectTrip(tripId){

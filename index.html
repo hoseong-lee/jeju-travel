@@ -178,6 +178,30 @@
     <div class="trip-selector-list"></div>
   </div>
 </div>
+<!-- Trip create/edit form -->
+<div class="modal-overlay trip-selector-overlay" id="tripFormOverlay" onclick="if(event.target===this)closeTripForm()">
+  <div class="modal trip-selector-modal">
+    <div class="modal-title"><span id="tripFormTitle">➕ 새 여행 추가</span><button class="modal-close" onclick="closeTripForm()">✕</button></div>
+    <div class="field-row">
+      <div class="field-group" style="flex:0 0 80px"><div class="field-label">표지</div><input class="field-input" id="ct-emoji" placeholder="✈️" maxlength="4" style="text-align:center;font-size:22px"></div>
+      <div class="field-group"><div class="field-label">여행 이름</div><input class="field-input" id="ct-name" placeholder="예: 오사카 가족여행"></div>
+    </div>
+    <div class="field-group"><div class="field-label">짧은 이름 (헤더용)</div><input class="field-input" id="ct-short" placeholder="예: 오사카"></div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">시작일</div><input class="field-input" id="ct-start" type="date"></div>
+      <div class="field-group"><div class="field-label">종료일</div><input class="field-input" id="ct-end" type="date"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">테마 컬러</div><input class="field-input" id="ct-color" type="color" value="#10B981" style="height:38px;padding:2px"></div>
+      <div class="field-group"><div class="field-label">통화</div><select class="field-select" id="ct-currency"><option value="KRW">₩ KRW</option><option value="EUR">€ EUR</option><option value="USD">$ USD</option><option value="JPY">¥ JPY</option></select></div>
+    </div>
+    <div class="field-group"><div class="field-label">함께 보는 이메일 (쉼표 구분, 본인은 자동 추가)</div><input class="field-input" id="ct-emails" placeholder="예: spouse@gmail.com, family@gmail.com"></div>
+    <div class="modal-actions" id="tripFormActions">
+      <button class="modal-btn modal-btn-cancel" onclick="closeTripForm()">취소</button>
+      <button class="modal-btn modal-btn-save" id="tripFormSaveBtn" onclick="saveTripForm()">생성</button>
+    </div>
+  </div>
+</div>
 <div class="photo-modal" id="photoModal" onclick="this.classList.remove('visible')"><img src=""></div>
 <div class="swipe-indicator" id="swipeIndicator"></div>
 <div class="toast" id="toast"></div>

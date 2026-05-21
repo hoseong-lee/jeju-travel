@@ -217,22 +217,22 @@ window.DEFAULT_TRIPS=[
 {date:"6/2 (화)",region:"제주 서부 — 점보빌리지 & 돌고래 🐬",color:"#2E86AB",hotel:"제주키즈앤돌핀펜션 (2/2박)\n🕐 익일 체크아웃",schedule:[
 {time:"08:30",title:"☀️ 펜션 아침",placeName:"제주키즈앤돌핀펜션",desc:"여유롭게 아침 식사",type:"food",coords:[33.3340,126.2050]},
 {time:"10:00",title:"🦒 점보빌리지",placeName:"점보빌리지 제주",desc:"펜션에서 18km / 35분\n하윤이 신나게 놀기 좋은 곳",type:"spot",coords:[33.4000,126.2200],cost:30000},
-{time:"13:00",title:"🍜 협재 보말칼국수",placeName:"협재 보말칼국수",desc:"한림 협재 도민 보말칼국수\n점보빌리지에서 차로 약 15분",type:"food",coords:[33.3940,126.2400],cost:35000},
+{time:"13:00",title:"🍜 한림칼국수 (옹포)",placeName:"한림칼국수 옹포본점",desc:"한림 옹포리 보말칼국수 도민맛집\n점보빌리지에서 차로 약 10분",type:"food",coords:[33.4080,126.2620],cost:35000},
 {time:"15:00",title:"🐬 돌고래 스팟",placeName:"신창풍차해안도로",desc:"남방큰돌고래 출몰 포인트\n해안 산책 & 풍차 뷰",type:"spot",coords:[33.3389,126.1797]},
-{time:"16:30",title:"☕ 보롬왓",placeName:"보롬왓 카페",desc:"한경면 라벤더·메밀꽃 정원 카페\n돌고래 스팟에서 차로 약 20분",type:"food",coords:[33.3450,126.2120],cost:15000},
+{time:"16:30",title:"☕ 어니스트 한경",placeName:"어니스트 한경 두모리",desc:"한경면 두모리 도민 카페\n돌고래 스팟에서 차로 약 10분, 펜션 방향",type:"food",coords:[33.3470,126.1880],cost:15000},
 {time:"17:30",title:"🛒 농협 장보기",placeName:"한경농협",desc:"저녁용 고기 & 식재료",type:"shopping",coords:[33.3420,126.2200]},
-{time:"18:30",title:"🍖 도라지식당 (한림)",placeName:"도라지식당 한림",desc:"한림읍 흑돼지·해물탕 도민맛집\n직접 구워주는 코스, 예약 권장",type:"food",warn:"예약 권장",coords:[33.3940,126.2790],cost:80000},
+{time:"18:30",title:"🍖 한라산아래첫마을 (봉성)",placeName:"한라산아래첫마을 봉성리",desc:"안덕 봉성 직화 흑돼지·메밀 도민 1위급\n펜션에서 차로 약 25분 · 예약 권장",type:"food",warn:"예약 권장 · 웨이팅 多",coords:[33.3290,126.3520],cost:80000},
 {time:"21:00",title:"🧸 펜션 키즈룸",placeName:"제주키즈앤돌핀펜션",desc:"하윤이 장난감 놀이",type:"etc",coords:[33.3340,126.2050]}
 ]},
 {date:"6/3 (수)",region:"제주 시내 이동 — 베스트웨스턴 🏨",color:"#F5A623",hotel:"베스트웨스턴 제주\n📋 1박 82,846원 결제 완료\n🕐 체크인 15시 (1/1박)\n📍 시내권 · 공항 가까움",schedule:[
 {time:"08:30",title:"☀️ 펜션 마지막 아침",placeName:"제주키즈앤돌핀펜션",desc:"체크아웃 준비",type:"food",coords:[33.3340,126.2050]},
 {time:"11:00",title:"🧳 키즈앤돌핀 체크아웃",placeName:"제주키즈앤돌핀펜션",desc:"짐 차에 싣고 출발",type:"hotel",coords:[33.3340,126.2050]},
 {time:"11:30",title:"🌳 곶자왈 / 산책",desc:"이동 중 간단 산책지\n(저지리 일대 추천)",type:"spot"},
-{time:"13:00",title:"🍽️ 사계해녀촌",placeName:"사계해녀촌",desc:"안덕 사계리 해녀물회·전복죽\n펜션→시내 이동 중간 (산방산 뷰)",type:"food",coords:[33.2310,126.3070],cost:40000},
+{time:"13:00",title:"🍲 은희네해장국 (노형)",placeName:"은희네해장국 노형점",desc:"제주 도민 소고기해장국 1위급\n시내 진입 직전 · 호텔 차로 5분",type:"food",warn:"웨이팅 多",coords:[33.4760,126.4860],cost:40000},
 {time:"15:00",title:"🏨 베스트웨스턴 체크인",placeName:"Best Western Plus Jeju Airest City Hotel",desc:"시내 호텔 체크인",type:"hotel",coords:[33.4870,126.4980]},
 {time:"16:00",title:"🌲 한라수목원",placeName:"한라수목원",desc:"가볍게 산책 (유모차 OK)",type:"spot",coords:[33.4561,126.4756]},
 {time:"18:00",title:"🌅 이호테우 해변",placeName:"이호테우해변",desc:"말 등대 & 노을\n공항 근처 노을 명소",type:"spot",coords:[33.4998,126.4607]},
-{time:"19:30",title:"🦐 물항식당",placeName:"물항식당 제주",desc:"제주시 도민 해물탕 1위급\n흑돼지·갈치조림도 인기",type:"food",warn:"웨이팅 多 · 예약 권장",coords:[33.5119,126.5300],cost:90000},
+{time:"19:30",title:"🍖 흑돼지가야지 (노형)",placeName:"흑돼지가야지 노형점",desc:"베스트웨스턴 호텔에서 차로 5분\n도민 직화 흑돼지 · 예약 권장",type:"food",warn:"예약 권장",coords:[33.4790,126.4790],cost:90000},
 {time:"21:00",title:"🛌 호텔 휴식",placeName:"Best Western Plus Jeju Airest City Hotel",desc:"하윤이 재우고 마무리",type:"hotel",coords:[33.4870,126.4980]}
 ]},
 {date:"6/4 (목)",region:"제주 → 한국 ✈️🇰🇷",color:"#888",hotel:"귀국일 · 베스트웨스턴 체크아웃 11시",schedule:[
