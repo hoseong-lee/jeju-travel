@@ -1,11 +1,70 @@
-// ══════════ DATA ══════════
-// 원본 seed 데이터는 trip-data.js 에 분리. 여기선 깊은 복사로 초기화만.
-let DAYS=JSON.parse(JSON.stringify(window.DEFAULT_TRIP_DAYS||[]));
+// ══════════ MULTI-TRIP DATA ══════════
+// 통합 시드: trip-data.js의 window.DEFAULT_TRIPS = [{id, meta, days}, ...]
+let TRIPS=JSON.parse(JSON.stringify(window.DEFAULT_TRIPS||[]));
+let currentTripId=null;
+// DAYS는 현재 선택된 trip의 days를 가리킴 (let — setCurrentTrip에서 재할당)
+let DAYS=[];
+let WEATHER_DATA=[];
+let EUR_RATE=1450; // 현재 trip의 currency.defaultRate로 setCurrentTrip에서 갱신
+let TRIP_START=new Date(), TRIP_END=new Date();
+let DEFAULT_PACKING={}, DEFAULT_SHOPPING={};
+
+// trip별 packing/shopping 템플릿 (app.js에 두 trip 정의를 보존)
+const PACKING_TEMPLATES={
+'spain-2026':{
+'필수서류':['여권','비자/ETIAS','항공권 프린트','호텔 바우처','여행자보험','국제운전면허증'],
+'전자기기':['충전기','보조배터리','유럽 어댑터(C타입)','카메라'],
+'의류':['수영복','우산/우비','편한 운동화'],
+'세면용품':['선크림','세면도구'],
+'의약품':['상비약','멀미약'],
+'기타':['에코백','자물쇠']
+},
+'jeju-2026':{
+'필수서류':['신분증','항공권 캡처','호텔 바우처','운전면허증','쏘카 예약확인','퓨어베베 예약확인'],
+'전자기기':['충전기','보조배터리','카메라','블루투스 스피커'],
+'의류':['수영복(아이)','우산/우비','편한 운동화','얇은 외투'],
+'세면용품':['선크림','세면도구','아이 목욕용품'],
+'육아용품':['하윤이 옷','기저귀/물티슈','이유식/간식','젖병/빨대컵','장난감 몇 개'],
+'의약품':['상비약','해열제(아이용)','멀미약','파스'],
+'기타':['에코백','보냉백(고기용)']
+}};
+const SHOPPING_TEMPLATES={
+'spain-2026':{
+'🛒 Mercadona 마트':['꿀국화차','올리브 바디크림','환타레몬'],
+'🏪 그 외 슈퍼':['프링글스 하몽맛','하몽 + 멜론'],
+'🫒 라치나타 (La Chinata)':['올리브오일 (트러플)','발사믹','핸드크림','립밤'],
+'🛍️ 백화점':['부보 초콜릿','꾸악 올리브오일','프리오랏 와인','베르뭇 와인','뚜론 비센스','고메즈 손소독제'],
+'🏛️ 고딕지구':['사바테즈','코쿠아 플랫슈즈','오이소 잠옷'],
+'🌉 포르토 쇼핑':['푸타 비치타올','성물방','유리아쥬','쟈크폰 크림'],
+'🐟 포르투 시장':['※ 참고: m.blog.naver.com/soso_seoul/224179281858']
+},
+'jeju-2026':{
+'🛒 홍마트 / 농협 (첫날 장보기)':['고기 (삼겹살/목살)','쌈채소','과일','우유','아이 간식','생수','맥주'],
+'🍊 동문시장 (귀국 선물)':['오메기떡','옥돔','한라봉','감귤초콜릿','땅콩 아이스크림'],
+'🐟 제주 특산':['갈치','흑돼지','말린생선','한라봉 가공품']
+}};
+
+// trip 헬퍼
+function getCurrentTrip(){return TRIPS.find(t=>t.id===currentTripId)||TRIPS[0]||null}
+function setCurrentTrip(tripId){
+  const trip=TRIPS.find(t=>t.id===tripId);
+  if(!trip){console.warn('Unknown tripId:',tripId);return false}
+  currentTripId=trip.id;
+  DAYS=trip.days;
+  const m=trip.meta||{};
+  WEATHER_DATA=(m.weatherStatic||[]).map(w=>({city:w.city,icon:w.icon,temp:w.temp,desc:w.desc,matches:w.matches||[]}));
+  EUR_RATE=(m.currency&&m.currency.defaultRate)||1;
+  TRIP_START=m.startDate?new Date(m.startDate):new Date();
+  TRIP_END=m.endDate?new Date(m.endDate):new Date();
+  DEFAULT_PACKING=PACKING_TEMPLATES[trip.id]||{};
+  DEFAULT_SHOPPING=SHOPPING_TEMPLATES[trip.id]||{};
+  // 회화 기본 언어
+  if(typeof phraseLang!=='undefined'&&m.defaultPhraseLang)phraseLang=m.defaultPhraseLang;
+  try{localStorage.setItem('travel_current_trip_id',trip.id)}catch(e){}
+  return true
+}
 
 const TYPE_STYLES={flight:{bg:"rgba(59,130,246,.1)",border:"rgba(59,130,246,.25)",dot:"#3B82F6",label:"항공"},hotel:{bg:"rgba(139,92,246,.1)",border:"rgba(139,92,246,.25)",dot:"#8B5CF6",label:"숙소"},spot:{bg:"rgba(16,185,129,.1)",border:"rgba(16,185,129,.25)",dot:"#10B981",label:"관광"},food:{bg:"rgba(245,158,11,.1)",border:"rgba(245,158,11,.25)",dot:"#F59E0B",label:"맛집"},shopping:{bg:"rgba(236,72,153,.1)",border:"rgba(236,72,153,.25)",dot:"#EC4899",label:"쇼핑"},move:{bg:"rgba(99,102,241,.08)",border:"rgba(99,102,241,.2)",dot:"#818CF8",label:"교통"},etc:{bg:"rgba(107,114,128,.08)",border:"rgba(107,114,128,.2)",dot:"#6B7280",label:"기타"}};
-const WEATHER_DATA=[{city:"제주 서부",icon:"☀️",temp:"19-24°C",desc:"맑음"},{city:"제주 시내",icon:"⛅",temp:"20-25°C",desc:"맑음/구름"},{city:"제주",icon:"🌤️",temp:"19-25°C",desc:"맑음"}];
-let EUR_RATE=1450; // 국내여행이라 미사용 — 함수 호환용 상수로만 유지
-const TRIP_START=new Date(2026,5,1);const TRIP_END=new Date(2026,5,4);
 
 const STATUS_LABELS={unbooked:'⬜ 미예약',pending:'🟡 진행중',confirmed:'✅ 확정',cancelled:'❌ 취소'};
 const STATUS_CSS={unbooked:'status-unbooked',pending:'status-pending',confirmed:'status-confirmed',cancelled:'status-cancelled'};
@@ -21,24 +80,11 @@ let gpsMarker=null,gpsCircle=null,gpsWatchId=null;
 let pendingRemoteData=null;
 let budgetSubView='plan'; // 'plan' or 'expense'
 const travelTimeCache=new Map();
-const DEFAULT_PACKING={
-'필수서류':['신분증','항공권 캡처','호텔 바우처','운전면허증','쏘카 예약확인','퓨어베베 예약확인'],
-'전자기기':['충전기','보조배터리','카메라','블루투스 스피커'],
-'의류':['수영복(아이)','우산/우비','편한 운동화','얇은 외투'],
-'세면용품':['선크림','세면도구','아이 목욕용품'],
-'육아용품':['하윤이 옷','기저귀/물티슈','이유식/간식','젖병/빨대컵','장난감 몇 개'],
-'의약품':['상비약','해열제(아이용)','멀미약','파스'],
-'기타':['에코백','보냉백(고기용)']
-};
-const DEFAULT_SHOPPING={
-'🛒 홍마트 / 농협 (첫날 장보기)':['고기 (삼겹살/목살)','쌈채소','과일','우유','아이 간식','생수','맥주'],
-'🍊 동문시장 (귀국 선물)':['오메기떡','옥돔','한라봉','감귤초콜릿','땅콩 아이스크림'],
-'🐟 제주 특산':['갈치','흑돼지','말린생선','한라봉 가공품']
-};
+// DEFAULT_PACKING / DEFAULT_SHOPPING은 상단 trip 레이어에서 let으로 정의됨 (PACKING_TEMPLATES / SHOPPING_TEMPLATES에서 setCurrentTrip이 채움)
 let fbApp=null,fbAuth=null,fbDb=null,fbUser=null,fbConnected=false,isSyncingFromRemote=false,lastSyncTimestamp=0;
 let dataListener=null,presenceListener=null;
 
-const ALLOWED_EMAILS=['3hosungo@gmail.com','rachel506wnsgk@gmail.com'];
+const ALLOWED_EMAILS=['3hosungo@gmail.com','rachel506wnsgk@gmail.com','h2eungil24@gmail.com'];
 const FIREBASE_CONFIG={apiKey:"AIzaSyBPPr7VX6VHXAmx-jRdEjVcZzAbra9EbLs",authDomain:"hosing-5913f.firebaseapp.com",databaseURL:"https://hosing-5913f-default-rtdb.firebaseio.com",projectId:"hosing-5913f",storageBucket:"hosing-5913f.firebasestorage.app",messagingSenderId:"445332229155",appId:"1:445332229155:web:eddbe748e4df89769af596"};
 
 // ══════════ UTILS ══════════
@@ -95,17 +141,23 @@ function signIn(){if(!fbAuth){showToast('연결 실패 — 새로고침');return
 function signOut(){if(fbAuth)fbAuth.signOut();fbUser=null;updateAuthUI();updateSyncUI('offline');showToast('로그아웃')}
 function updateAuthUI(){const el=document.getElementById('authContent');if(fbUser){const p=fbUser.photoURL||'',n=fbUser.displayName||fbUser.email;el.innerHTML=`<div class="auth-user">${p?`<img class="auth-avatar" src="${p}">`:''}${esc(n)}</div><button class="auth-btn auth-btn-logout" onclick="signOut()">로그아웃</button>`}else el.innerHTML='<button class="auth-btn auth-btn-login" onclick="signIn()">🔑 로그인</button>'}
 function updateSyncUI(s){document.getElementById('syncDot').className='sync-dot '+s;document.getElementById('syncText').textContent={online:'동기화',offline:'오프라인',syncing:'동기화 중...'}[s]||'오프라인'}
-function getDataRef(){return fbDb?fbDb.ref('travel-jeju/itinerary'):null}
-async function fetchRemoteThenSync(){const ref=getDataRef();if(!ref)return;updateSyncUI('syncing');try{const snap=await ref.once('value');const r=snap.val();if(r&&r.days&&r.updatedAt){DAYS=migrateStatus(r.days);saveToLocalOnly();lastSyncTimestamp=r.updatedAt;if(currentDay>=DAYS.length)currentDay=DAYS.length-1;render();updateSyncUI('online');showToast('클라우드 데이터 로드')}else syncToRemote()}catch(e){updateSyncUI('offline')}}
+// trip-scoped firebase 노드 경로 — trips/{tripId}/itinerary
+function getDataRef(){if(!fbDb||!currentTripId)return null;return fbDb.ref('trips/'+currentTripId+'/itinerary')}
+async function fetchRemoteThenSync(){const ref=getDataRef();if(!ref)return;updateSyncUI('syncing');try{const snap=await ref.once('value');const r=snap.val();if(r&&r.days&&r.updatedAt){const tripIdx=TRIPS.findIndex(t=>t.id===currentTripId);if(tripIdx>=0)TRIPS[tripIdx].days=migrateStatus(r.days);DAYS=TRIPS[tripIdx].days;saveToLocalOnly();lastSyncTimestamp=r.updatedAt;if(currentDay>=DAYS.length)currentDay=DAYS.length-1;render();updateSyncUI('online');showToast('클라우드 데이터 로드')}else{// 신규 trip 노드 → spain의 경우 legacy 노드(travel/itinerary)에서 1회 마이그레이션
+await migrateLegacyTripIfNeeded(currentTripId);syncToRemote()}}catch(e){updateSyncUI('offline')}}
+// 기존 spain 데이터를 trips/spain-2026으로 자동 마이그레이션
+async function migrateLegacyTripIfNeeded(tripId){if(!fbDb||!fbUser)return;const legacyMap={'spain-2026':'travel/itinerary','jeju-2026':'travel-jeju/itinerary'};const legacyPath=legacyMap[tripId];if(!legacyPath)return;const flagKey='travel_migrated_'+tripId;if(localStorage.getItem(flagKey)==='1')return;try{const legacySnap=await fbDb.ref(legacyPath).once('value');const legacy=legacySnap.val();if(legacy&&legacy.days&&Array.isArray(legacy.days)&&legacy.days.length){const tripIdx=TRIPS.findIndex(t=>t.id===tripId);if(tripIdx>=0){TRIPS[tripIdx].days=migrateStatus(legacy.days);DAYS=TRIPS[tripIdx].days;saveToLocalOnly();render();showToast(`${tripId} legacy 데이터 마이그레이션`)}}localStorage.setItem(flagKey,'1')}catch(e){console.warn('legacy 마이그레이션 실패',e)}}
 function syncToRemote(){if(!fbDb||!fbUser||isSyncingFromRemote)return;const ref=getDataRef();if(!ref)return;updateSyncUI('syncing');ref.set({days:DAYS,updatedBy:fbUser.uid,updatedByName:fbUser.displayName||fbUser.email,updatedAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{lastSyncTimestamp=Date.now();updateSyncUI('online')}).catch(()=>updateSyncUI('offline'))}
-function listenForChanges(){detachListeners();const ref=getDataRef();if(!ref)return;dataListener=ref.on('value',snap=>{const data=snap.val();if(!data||!data.days)return;if(data.updatedBy===fbUser?.uid)return;if(editMode){pendingRemoteData=data;showToast(`📡 ${data.updatedByName||'상대방'}님 수정 — 편집 후 반영`);return}const oldDays=JSON.stringify(DAYS);isSyncingFromRemote=true;DAYS=migrateStatus(data.days);saveToLocalOnly();lastSyncTimestamp=data.updatedAt||Date.now();if(currentDay>=DAYS.length)currentDay=DAYS.length-1;render();highlightConflicts(oldDays,data.days);showToast(`📡 ${data.updatedByName||'상대방'}님이 수정`);isSyncingFromRemote=false})}
+function listenForChanges(){detachListeners();const ref=getDataRef();if(!ref)return;dataListener=ref.on('value',snap=>{const data=snap.val();if(!data||!data.days)return;if(data.updatedBy===fbUser?.uid)return;if(editMode){pendingRemoteData=data;showToast(`📡 ${data.updatedByName||'상대방'}님 수정 — 편집 후 반영`);return}const oldDays=JSON.stringify(DAYS);isSyncingFromRemote=true;const tripIdx=TRIPS.findIndex(t=>t.id===currentTripId);if(tripIdx>=0)TRIPS[tripIdx].days=migrateStatus(data.days);DAYS=TRIPS[tripIdx].days;saveToLocalOnly();lastSyncTimestamp=data.updatedAt||Date.now();if(currentDay>=DAYS.length)currentDay=DAYS.length-1;render();highlightConflicts(oldDays,data.days);showToast(`📡 ${data.updatedByName||'상대방'}님이 수정`);isSyncingFromRemote=false})}
 function detachListeners(){if(dataListener){const r=getDataRef();if(r)r.off('value',dataListener);dataListener=null}}
-function setupPresence(){if(!fbDb||!fbUser)return;const my=fbDb.ref('travel-jeju/presence/'+fbUser.uid);my.set({name:fbUser.displayName||fbUser.email||'사용자',photo:fbUser.photoURL||'',online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP});my.onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP});const all=fbDb.ref('travel-jeju/presence');if(presenceListener)all.off('value',presenceListener);presenceListener=all.on('value',snap=>{const u=snap.val()||{};const o=Object.entries(u).filter(([k,v])=>k!==fbUser.uid&&v.online).map(([,v])=>v);const bar=document.getElementById('presenceBar'),txt=document.getElementById('presenceText');if(o.length){bar.classList.add('visible');txt.innerHTML=o.map(x=>x.photo?`<img class="presence-avatar" src="${x.photo}">`:''). join('')+` <span>${o.map(x=>x.name).join(', ')}님도 접속</span>`}else bar.classList.remove('visible')})}
+function setupPresence(){if(!fbDb||!fbUser||!currentTripId)return;const my=fbDb.ref('trips/'+currentTripId+'/presence/'+fbUser.uid);my.set({name:fbUser.displayName||fbUser.email||'사용자',photo:fbUser.photoURL||'',online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP});my.onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP});const all=fbDb.ref('trips/'+currentTripId+'/presence');if(presenceListener)all.off('value',presenceListener);presenceListener=all.on('value',snap=>{const u=snap.val()||{};const o=Object.entries(u).filter(([k,v])=>k!==fbUser.uid&&v.online).map(([,v])=>v);const bar=document.getElementById('presenceBar'),txt=document.getElementById('presenceText');if(o.length){bar.classList.add('visible');txt.innerHTML=o.map(x=>x.photo?`<img class="presence-avatar" src="${x.photo}">`:''). join('')+` <span>${o.map(x=>x.name).join(', ')}님도 접속</span>`}else bar.classList.remove('visible')})}
 
 // ══════════ PERSISTENCE ══════════
-function saveToLocalOnly(){try{localStorage.setItem('travel_jeju_planner_days',JSON.stringify(DAYS))}catch(e){if(e&&e.name==='QuotaExceededError')showToast('저장소 용량 초과 — 사진/메모를 줄여주세요');else console.warn('saveToLocal 실패:',e)}}
+// 모든 trip을 통째로 저장 (TRIPS 배열 전체) — trip 전환 시에도 동일 키 갱신
+function saveToLocalOnly(){try{localStorage.setItem('travel_trips',JSON.stringify(TRIPS));if(currentTripId)localStorage.setItem('travel_current_trip_id',currentTripId)}catch(e){if(e&&e.name==='QuotaExceededError')showToast('저장소 용량 초과 — 사진/메모를 줄여주세요');else console.warn('saveToLocal 실패:',e)}}
 function saveToLocal(){saveToLocalOnly();syncToRemote()}
-function loadFromLocal(){try{const d=localStorage.getItem('travel_jeju_planner_days');if(d){const parsed=JSON.parse(d);if(Array.isArray(parsed)&&parsed.length)DAYS=parsed}}catch(e){console.warn('loadFromLocal 실패 — seed 데이터 사용:',e);showToast('저장 데이터 손상 — 기본값 복구')}}
+function loadFromLocal(){try{const d=localStorage.getItem('travel_trips');if(d){const parsed=JSON.parse(d);if(Array.isArray(parsed)&&parsed.length){// seed의 trip이 새로 생긴 경우 보충
+const ids=new Set(parsed.map(t=>t.id));(window.DEFAULT_TRIPS||[]).forEach(seed=>{if(!ids.has(seed.id))parsed.push(JSON.parse(JSON.stringify(seed)))});TRIPS=parsed}}}catch(e){console.warn('loadFromLocal 실패 — seed 데이터 사용:',e);showToast('저장 데이터 손상 — 기본값 복구')}}
 
 // ══════════ VIEW ══════════
 function switchView(v){currentView=v;const views=['dashboard','timeline','map','route','budget','prep','phrase','sos'];document.querySelectorAll('.view-tab').forEach((t,i)=>t.classList.toggle('active',views[i]===v));document.getElementById('dashboardView').classList.toggle('visible',v==='dashboard');document.getElementById('timelineView').style.display=v==='timeline'?'':'none';document.getElementById('mapView').classList.toggle('visible',v==='map');document.getElementById('routeView').classList.toggle('visible',v==='route');document.getElementById('budgetView').classList.toggle('visible',v==='budget');document.getElementById('prepView').classList.toggle('visible',v==='prep');document.getElementById('phraseView').classList.toggle('visible',v==='phrase');document.getElementById('sosView').classList.toggle('visible',v==='sos');document.getElementById('tipsSection').style.display=v==='timeline'?'':'none';document.getElementById('editToolbar').style.display=v==='timeline'?'':'none';document.getElementById('daySelector').style.display=v==='dashboard'||v==='route'||v==='budget'||v==='prep'||v==='phrase'||v==='sos'?'none':'';if(v==='map')setTimeout(()=>{if(!map)initMap();else map.invalidateSize();updateMap()},100);if(v==='dashboard')renderDashboard();if(v==='route')renderRouteView();if(v==='budget')renderBudgetView();if(v==='prep')renderPrepView();if(v==='phrase')renderPhraseView();if(v==='sos')renderSOSView()}
@@ -119,7 +171,8 @@ function renderDaySelector(){const el=document.getElementById('daySelector');el.
 function renderDayContent(){const day=DAYS[currentDay];const filtered=currentFilter==='all'?day.schedule.map((s,i)=>({...s,_idx:i})):day.schedule.map((s,i)=>({...s,_idx:i})).filter(s=>s.type===currentFilter);
 const dayCost=day.schedule.reduce((s,i)=>s+(i.cost||0),0);const checkedCount=day.schedule.filter(i=>i.checked).length;
 // header
-const weatherMatch=day.region.includes('서부')||day.region.includes('점보')||day.region.includes('돌고래')?WEATHER_DATA[0]:day.region.includes('시내')||day.region.includes('베스트웨스턴')?WEATHER_DATA[1]:day.region.includes('제주')||day.region.includes('한국')?WEATHER_DATA[2]:null;
+// trip 메타의 weatherStatic.matches를 사용해 region → weather 매칭
+const weatherMatch=(WEATHER_DATA||[]).find(w=>(w.matches||[]).some(m=>day.region.includes(m)))||null;
 document.getElementById('dayHeader').innerHTML=`<div class="day-header-top"><div class="day-badge" style="background:${day.color}18;border:2px solid ${day.color};color:${day.color}">D${currentDay+1}</div><div><div class="day-region">${esc(day.region)}</div><div class="day-date-sub">${day.date} · ${day.schedule.length}개 일정 · ${checkedCount}/${day.schedule.length} 완료</div>${weatherMatch?`<div class="day-weather">${weatherMatch.icon} ${weatherMatch.temp} ${weatherMatch.desc}</div>`:''}</div></div>${day.hotel!=='—'?`<div class="hotel-box" onclick="${editMode?'openHotelModal()':''}">🏨 ${esc(day.hotel)}${editMode?' <span style="color:#fbbf24;font-size:9px">✏️</span>':''}</div>`:''}${dayCost?`<div class="day-budget"><span>💰 이 날 예상 비용</span><strong>${fmt(dayCost)}</strong></div>`:''}`;
 // filters
 const filters=[{key:'all',label:'전체'},{key:'spot',label:'📍 관광'},{key:'food',label:'🍴 맛집'},{key:'shopping',label:'🛍️ 쇼핑'},{key:'flight',label:'✈️ 이동'},{key:'hotel',label:'🏨 숙소'}];
@@ -726,8 +779,57 @@ showToast(`오프라인 지도 완료 — 성공 ${done} / 실패 ${failed}`)}
 function calcTaxRefund(){/* noop: 제주는 국내여행 */}
 function renderTaxRefundWidget(){return''}
 
+// ══════════ TRIP SELECTOR ══════════
+function openTripSelector(){
+  const el=document.getElementById('tripSelectorOverlay');
+  if(!el)return;
+  const list=TRIPS.map(t=>{const m=t.meta||{};const cnt=(t.days||[]).reduce((s,d)=>s+(d.schedule||[]).length,0);const active=t.id===currentTripId?' trip-card-active':'';return`<div class="trip-card${active}" style="border-color:${m.themeColor||'#888'}33;background:${m.themeColor||'#888'}11" onclick="selectTrip('${t.id}')">
+    <div class="trip-card-emoji">${m.coverEmoji||'✈️'}</div>
+    <div class="trip-card-body">
+      <div class="trip-card-name" style="color:${m.themeColor||'#f1f5f9'}">${esc(m.name||t.id)}</div>
+      <div class="trip-card-date">${esc(m.dateRange||'')}</div>
+      <div class="trip-card-stats">${(t.days||[]).length}일 · ${cnt}개 일정</div>
+    </div>
+  </div>`}).join('');
+  el.querySelector('.trip-selector-list').innerHTML=list;
+  el.classList.add('visible')
+}
+function closeTripSelector(){const el=document.getElementById('tripSelectorOverlay');if(el)el.classList.remove('visible')}
+function selectTrip(tripId){
+  if(!setCurrentTrip(tripId))return;
+  migrateStatus(DAYS);
+  currentDay=0;
+  saveToLocalOnly();
+  applyTripMetaToUI();
+  closeTripSelector();
+  render();
+  updateDDay();
+  fetchLiveWeather();
+  // Firebase 연결되어 있으면 trip-scoped 리스너 재설정
+  if(fbUser){detachListeners();fetchRemoteThenSync().then(()=>listenForChanges())}
+}
+function applyTripMetaToUI(){
+  const t=getCurrentTrip();if(!t)return;
+  const m=t.meta||{};
+  const titleEl=document.querySelector('.header-title');if(titleEl)titleEl.textContent=m.name||'여행 플래너';
+  const dateEl=document.querySelector('.header-date');if(dateEl){const ddayBadge='<span class="dday" id="ddayBadge"></span>';dateEl.innerHTML=esc(m.dateRange||'')+' '+ddayBadge}
+  const tipsBody=document.querySelector('#tipsSection .tips-body');if(tipsBody&&m.tipsHtml)tipsBody.innerHTML=m.tipsHtml;
+  // 트립 변경 버튼이 헤더 액션에 없으면 추가
+  if(!document.getElementById('tripSwitchBtn')){
+    const actions=document.querySelector('.header-actions');
+    if(actions){const btn=document.createElement('button');btn.className='header-action-btn';btn.id='tripSwitchBtn';btn.title='여행 변경';btn.textContent=m.coverEmoji||'🧳';btn.onclick=openTripSelector;actions.insertBefore(btn,actions.firstChild)}
+  }else{
+    document.getElementById('tripSwitchBtn').textContent=m.coverEmoji||'🧳'
+  }
+}
+
 // ══════════ INIT ══════════
-loadFromLocal();migrateStatus(DAYS);render();updateDDay();fetchLiveWeather();initFirebase();fetchExchangeRate();restoreTheme();
+loadFromLocal();
+// 저장된 currentTripId 복원 (없으면 첫 trip 사용)
+let savedTripId=null;try{savedTripId=localStorage.getItem('travel_current_trip_id')}catch(e){}
+if(!savedTripId||!TRIPS.find(t=>t.id===savedTripId))savedTripId=(TRIPS[0]&&TRIPS[0].id)||null;
+if(savedTripId)setCurrentTrip(savedTripId);
+migrateStatus(DAYS);applyTripMetaToUI();render();updateDDay();fetchLiveWeather();initFirebase();fetchExchangeRate();restoreTheme();
 document.addEventListener('click',hideContextMenu);
 document.addEventListener('click',e=>{const wrap=document.querySelector('.map-search-wrap');if(wrap&&!wrap.contains(e.target)){const r=document.getElementById('mapSearchResults');if(r)r.classList.remove('visible')}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSearch();hideContextMenu();const r=document.getElementById('mapSearchResults');if(r)r.classList.remove('visible')}});

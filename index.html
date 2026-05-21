@@ -170,6 +170,14 @@
     <div class="modal-actions"><button class="modal-btn modal-btn-cancel" onclick="closeDayModal()">취소</button><button class="modal-btn modal-btn-save" onclick="saveDay()">추가</button></div>
   </div>
 </div>
+<!-- Trip selector overlay -->
+<div class="modal-overlay trip-selector-overlay" id="tripSelectorOverlay" onclick="if(event.target===this)closeTripSelector()">
+  <div class="modal trip-selector-modal">
+    <div class="modal-title"><span>🧳 여행 선택</span><button class="modal-close" onclick="closeTripSelector()">✕</button></div>
+    <div class="trip-selector-hint">여러 여행을 한 앱에서 관리해요. 카드를 눌러 진입하세요.</div>
+    <div class="trip-selector-list"></div>
+  </div>
+</div>
 <div class="photo-modal" id="photoModal" onclick="this.classList.remove('visible')"><img src=""></div>
 <div class="swipe-indicator" id="swipeIndicator"></div>
 <div class="toast" id="toast"></div>

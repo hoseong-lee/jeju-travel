@@ -706,3 +706,16 @@
 
   /* ══════ PRINT ══════ */
   @media print{body{background:#fff!important;color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.auth-bar,.presence-bar,.weather-bar,.edit-toolbar,.day-selector,.view-tabs,.currency-toggle,.currency-widget,.safe-bottom,.header-actions,.add-item-row,.edit-indicator,.card-checkbox,.move-btns,.filter-btn,.toolbar-btn,.map-container,.search-overlay,.ctx-menu,.toast,.swipe-indicator{display:none!important}.header{background:none!important;border-bottom:2px solid #000;position:static}.header-title{color:#000!important;font-size:20px}.header-date{color:#333!important}.timeline-card{break-inside:avoid;border:1px solid #ccc!important;background:#fff!important;margin-bottom:6px;box-shadow:none!important}.card-title{color:#000!important}.card-desc{color:#333!important}.day-header{break-before:page}.day-header:first-of-type{break-before:auto}.day-region{color:#000!important}.hotel-box{border:1px solid #999!important;background:#f5f5f5!important;color:#333!important}.tips{border-top:1px solid #ccc;background:none}.tips-title{color:#000}.tips-body{color:#333}.tips-body .hl-y,.tips-body .hl-p,.tips-body .hl-g,.tips-body .hl-o,.tips-body .hl-b{color:#000!important;font-weight:700}.route-container,.budget-container,.prep-container{display:block!important}.budget-total{border:2px solid #1D4ED8;background:#fff!important}.budget-total-amount{color:#1D4ED8!important}}
+
+/* ══════ Trip Selector ══════ */
+.trip-selector-modal{max-width:480px}
+.trip-selector-hint{font-size:11px;color:#94a3b8;margin-bottom:12px;text-align:center;line-height:1.5}
+.trip-selector-list{display:flex;flex-direction:column;gap:10px}
+.trip-card{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:12px;border:1.5px solid;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.trip-card:hover,.trip-card:active{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.trip-card-active{outline:2px solid #34d399;outline-offset:-1px}
+.trip-card-emoji{font-size:36px;flex-shrink:0;line-height:1}
+.trip-card-body{flex:1;min-width:0}
+.trip-card-name{font-size:14px;font-weight:800;letter-spacing:-.3px;margin-bottom:3px}
+.trip-card-date{font-size:11px;color:#94a3b8;font-weight:500}
+.trip-card-stats{font-size:10px;color:#64748b;margin-top:4px;font-weight:600}
