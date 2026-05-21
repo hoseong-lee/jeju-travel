@@ -1,4 +1,4 @@
-const CACHE_NAME = 'travel-planner-v4-tripcrud';
+const CACHE_NAME = 'travel-planner-v5-authfix';
 const STATIC_ASSETS = [
   './',
   './index.html',

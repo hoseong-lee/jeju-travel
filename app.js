@@ -142,8 +142,73 @@ function toggleCurrency(){const w=document.getElementById('currencyWidget');w.cl
 function calcCurrency(from){const e=document.getElementById('eurInput'),k=document.getElementById('krwInput');if(from==='eur'){const v=parseFloat(e.value)||0;k.value=v?Math.round(v*EUR_RATE).toLocaleString():''}else{const v=parseFloat(k.value.replace(/,/g,''))||0;e.value=v?(v/EUR_RATE).toFixed(2):''}}
 
 // ══════════ FIREBASE ══════════
-function initFirebase(){try{fbApp=firebase.initializeApp(FIREBASE_CONFIG);fbAuth=firebase.auth();fbDb=firebase.database();fbDb.ref('.info/connected').on('value',s=>{fbConnected=s.val()===true;if(fbConnected&&fbUser){updateSyncUI('online');setupPresence()}else if(!fbConnected)updateSyncUI('offline')});fbAuth.onAuthStateChanged(user=>{if(user&&ALLOWED_EMAILS.length>0&&!ALLOWED_EMAILS.includes(user.email)){fbAuth.signOut();fbUser=null;updateAuthUI();updateSyncUI('offline');showToast('접근 권한이 없는 계정');return}fbUser=user;updateAuthUI();if(user){updateSyncUI(fbConnected?'online':'offline');setupPresence();fetchRemoteThenSync().then(()=>listenForChanges())}else{updateSyncUI('offline');detachListeners()}});return true}catch(e){console.error(e);updateSyncUI('offline');return false}}
-function signIn(){if(!fbAuth){showToast('연결 실패 — 새로고침');return}const p=new firebase.auth.GoogleAuthProvider();fbAuth.signInWithPopup(p).catch(e=>{if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user')fbAuth.signInWithRedirect(p);else showToast('로그인 실패')})}
+function initFirebase(){
+  try{
+    fbApp=firebase.initializeApp(FIREBASE_CONFIG);fbAuth=firebase.auth();fbDb=firebase.database();
+    fbDb.ref('.info/connected').on('value',s=>{fbConnected=s.val()===true;if(fbConnected&&fbUser){updateSyncUI('online');setupPresence()}else if(!fbConnected)updateSyncUI('offline')});
+    // signInWithRedirect 사용 시 결과 처리 (popup 차단 fallback 대비)
+    fbAuth.getRedirectResult().then(r=>{if(r&&r.user)console.log('[redirect] 로그인 결과:',r.user.email)}).catch(e=>{if(e&&e.code)console.error('[redirect] 에러',e.code,e.message)});
+    fbAuth.onAuthStateChanged(user=>{
+      console.log('[auth] 상태 변경:',user&&user.email);
+      if(user&&ALLOWED_EMAILS.length>0&&!ALLOWED_EMAILS.includes(user.email)){
+        console.warn('[auth] ALLOWED_EMAILS에 없는 계정:',user.email);
+        fbAuth.signOut();fbUser=null;updateAuthUI();updateSyncUI('offline');
+        showToast(`${user.email} 계정은 접근 권한이 없어요`);
+        // selector가 열려있으면 갱신 (안내 메시지 노출)
+        const sel=document.getElementById('tripSelectorOverlay');
+        if(sel&&sel.classList.contains('visible'))openTripSelector();
+        return
+      }
+      fbUser=user;updateAuthUI();
+      if(user){
+        updateSyncUI(fbConnected?'online':'offline');
+        setupPresence();
+        // 로그인 직후: selector가 열려있으면 카드 목록 다시 그리기
+        const sel=document.getElementById('tripSelectorOverlay');
+        const selWasOpen=sel&&sel.classList.contains('visible');
+        // 현재 trip이 있으면 firebase 동기화 시도, 없으면 selector 강제 노출
+        if(currentTripId){
+          fetchRemoteThenSync().then(()=>listenForChanges());
+          if(selWasOpen)openTripSelector();
+        }else{
+          // 로그인 했지만 trip 미선택 → selector를 항상 열어줌 (사용자가 선택)
+          openTripSelector();
+        }
+      }else{
+        updateSyncUI('offline');detachListeners();
+        // 로그아웃: trip 클리어 + selector 자동 노출
+        currentTripId=null;DAYS=[];
+        try{localStorage.removeItem('travel_current_trip_id')}catch(e){}
+        applyTripMetaToUI();
+        openTripSelector()
+      }
+    });
+    return true
+  }catch(e){console.error('[initFirebase] 실패',e);updateSyncUI('offline');return false}
+}
+function signIn(){
+  if(!fbAuth){showToast('Firebase 미연결 — 새로고침 필요');console.error('fbAuth가 초기화되지 않음');return}
+  const p=new firebase.auth.GoogleAuthProvider();
+  console.log('[signIn] popup 시도 도메인:',location.origin);
+  fbAuth.signInWithPopup(p).then(r=>{
+    console.log('[signIn] 성공',r.user&&r.user.email)
+  }).catch(e=>{
+    console.error('[signIn] 실패',e.code,e.message,e);
+    if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'){
+      console.log('[signIn] redirect로 fallback');
+      fbAuth.signInWithRedirect(p)
+    }else if(e.code==='auth/unauthorized-domain'){
+      showToast('이 도메인은 Firebase에 등록 안 됨 — Console에서 도메인 추가 필요');
+      alert(`Firebase Auth 실패: 도메인 미등록\n\n현재 도메인: ${location.origin}\n\nFirebase Console → Authentication → Settings → Authorized domains에 추가하세요.`)
+    }else if(e.code==='auth/operation-not-allowed'){
+      showToast('Google 로그인 비활성화 — Firebase Console에서 활성화 필요')
+    }else if(e.code==='auth/network-request-failed'){
+      showToast('네트워크 오류 — 인터넷 확인')
+    }else{
+      showToast(`로그인 실패: ${e.code||e.message||'unknown'}`)
+    }
+  })
+}
 function signOut(){if(fbAuth)fbAuth.signOut();fbUser=null;updateAuthUI();updateSyncUI('offline');showToast('로그아웃')}
 function updateAuthUI(){const el=document.getElementById('authContent');if(fbUser){const p=fbUser.photoURL||'',n=fbUser.displayName||fbUser.email;el.innerHTML=`<div class="auth-user">${p?`<img class="auth-avatar" src="${p}">`:''}${esc(n)}</div><button class="auth-btn auth-btn-logout" onclick="signOut()">로그아웃</button>`}else el.innerHTML='<button class="auth-btn auth-btn-login" onclick="signIn()">🔑 로그인</button>'}
 function updateSyncUI(s){document.getElementById('syncDot').className='sync-dot '+s;document.getElementById('syncText').textContent={online:'동기화',offline:'오프라인',syncing:'동기화 중...'}[s]||'오프라인'}
