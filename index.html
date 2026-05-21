@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<title>🍊 제주 여행 플래너</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="style.css">
+<style>/* All styles moved to style.css */</style>
+</head>
+<body>
+<!-- 검색 오버레이 -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-header"><input class="search-input" id="searchInput" placeholder="일정 검색 (장소, 메모, 설명...)" oninput="performSearch(this.value)"><button class="search-close" onclick="closeSearch()">✕</button></div>
+  <div class="search-results" id="searchResults"><div class="search-empty">검색어를 입력하세요</div></div>
+</div>
+<!-- 컨텍스트 메뉴 -->
+<div class="ctx-menu" id="ctxMenu"></div>
+<div class="auth-bar"><div id="authContent"><button class="auth-btn auth-btn-login" onclick="signIn()">🔑 Google 로그인</button></div><div class="sync-status" id="syncStatus"><span class="sync-dot offline" id="syncDot"></span><span id="syncText">오프라인</span></div></div>
+<div class="presence-bar" id="presenceBar"><span class="presence-dot"></span><span id="presenceText"></span></div>
+<div class="header">
+  <div class="header-sub">Travel Planner 2026</div>
+  <div class="header-title">🍊 제주 가족여행 플래너</div>
+  <div class="header-date">2026.06.01 — 06.04 · 3박4일 <span class="dday" id="ddayBadge"></span></div>
+  <div class="header-actions">
+    <button class="header-action-btn" onclick="openSearch()" title="검색">🔍</button>
+    <button class="header-action-btn" id="themeToggleBtn" onclick="toggleTheme()" title="테마 전환">🌙</button>
+    <button class="header-action-btn" onclick="exportICS()" title="캘린더 내보내기">📅</button>
+    <button class="header-action-btn" onclick="exportPDF()" title="PDF 내보내기">📄</button>
+  </div>
+  <div class="edit-mode-bar" id="editModeBar">✏️ 편집 모드</div>
+</div>
+<div class="weather-bar" id="weatherBar"></div>
+<div class="view-tabs">
+  <button class="view-tab" onclick="switchView('dashboard')">🏠</button>
+  <button class="view-tab active" onclick="switchView('timeline')">📋 일정</button>
+  <button class="view-tab" onclick="switchView('map')">🗺️ 지도</button>
+  <button class="view-tab" onclick="switchView('route')">🧭 동선</button>
+  <button class="view-tab" onclick="switchView('budget')">💰 예산</button>
+  <button class="view-tab" onclick="switchView('prep')">📋 준비</button>
+  <button class="view-tab" onclick="switchView('phrase')">🗣️ 회화</button>
+  <button class="view-tab" onclick="switchView('sos')">🆘</button>
+</div>
+<div class="day-selector" id="daySelector"></div>
+<div class="edit-toolbar" id="editToolbar">
+  <button class="toolbar-btn btn-edit" id="toggleEditBtn" onclick="toggleEdit()">✏️ 편집</button>
+  <button class="toolbar-btn btn-add" onclick="openAddModal()" id="addBtn" style="display:none">+ 추가</button>
+  <button class="toolbar-btn btn-add" onclick="openDayModal()" id="addDayBtn" style="display:none">+ 날짜</button>
+  <button class="toolbar-btn btn-danger" onclick="deleteCurrentDay()" id="delDayBtn" style="display:none">날짜삭제</button>
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn btn-save" onclick="exportData()">💾</button>
+  <button class="toolbar-btn btn-import" onclick="document.getElementById('importInput').click()">📂</button>
+  <input type="file" id="importInput" accept=".json" onchange="importData(event)">
+</div>
+<div class="prep-container" id="dashboardView"></div>
+<div id="timelineView">
+  <div class="day-header" id="dayHeader"></div>
+  <div class="filters" id="filters"></div>
+  <div class="add-item-row" id="addItemRow"><button class="add-item-btn" onclick="openAddModal()">+ 이 날에 일정 추가하기</button></div>
+  <div class="timeline" id="timeline"></div>
+</div>
+<div class="map-container" id="mapView">
+  <div class="map-controls">
+    <button class="map-toggle active" id="mapDayToggle" onclick="setMapMode('day')">일자별</button>
+    <button class="map-toggle" id="mapAllToggle" onclick="setMapMode('all')">전체 여정</button>
+    <button class="map-toggle" id="mapProfileToggle" onclick="toggleRouteProfile()" title="경로 이동수단 전환">🚗 자동차</button>
+  </div>
+  <div class="map-search-wrap">
+    <span class="map-search-icon">🔍</span>
+    <input class="map-search-input" id="mapSearchInput" placeholder="장소·건물·지역 검색 (예: 아르떼뮤지엄)" oninput="onMapPlaceSearch(this.value)" onfocus="onMapPlaceSearch(this.value)">
+    <button class="map-search-clear" id="mapSearchClear" onclick="clearMapSearch()" title="지우기">✕</button>
+    <div class="map-search-results" id="mapSearchResults"></div>
+  </div>
+  <div id="map"></div>
+  <div class="map-day-info" id="mapDayInfo"></div>
+  <div class="map-action-stack">
+    <button class="map-action-btn" id="mapGpsBtn" onclick="locateGPS()" title="내 위치">📍</button>
+    <button class="map-action-btn" id="mapPrefetchBtn" onclick="prefetchOfflineTiles()" title="오프라인 지도 다운로드">📥</button>
+  </div>
+  <div class="map-legend"><div class="map-legend-title">카테고리</div><div class="map-legend-item"><div class="map-legend-dot" style="background:#10B981"></div>관광</div><div class="map-legend-item"><div class="map-legend-dot" style="background:#F59E0B"></div>맛집</div><div class="map-legend-item"><div class="map-legend-dot" style="background:#EC4899"></div>쇼핑</div><div class="map-legend-item"><div class="map-legend-dot" style="background:#3B82F6"></div>항공</div><div class="map-legend-item"><div class="map-legend-dot" style="background:#8B5CF6"></div>숙소</div></div>
+</div>
+<div class="route-container" id="routeView"></div>
+<div class="budget-container" id="budgetView"></div>
+<div class="prep-container" id="prepView"></div>
+<div class="prep-container" id="phraseView"></div>
+<div class="prep-container" id="sosView"></div>
+<div class="tips" id="tipsSection">
+  <div class="tips-title">💡 여행 꿀팁</div>
+  <div class="tips-body">
+    • <span class="hl-y">렌트카 반납</span>: 6/4 19:30 쏘카 / 19:00 퓨어베베 카시트<br>
+    • <span class="hl-p">키즈앤돌핀펜션</span>: 키즈 장난감 풀세팅, 하윤이 놀기 최적<br>
+    • <span class="hl-g">아르떼뮤지엄</span>: 사전 예약 권장 (현장 매진 잦음)<br>
+    • <span class="hl-o">돌고래 스팟</span>: 신창풍차해안도로 / 김녕 일대<br>
+    • 제주 서부 식당은 브레이크타임 多 — 점심 14시 전 도착 권장<br>
+    • 캐스퍼 30kg 초과 시 <span class="hl-y">1kg당 240원</span> 추가 과금
+  </div>
+</div>
+<div class="safe-bottom"></div>
+<!-- 환율 위젯: 국내여행이라 비활성화 (구조만 유지하여 app.js 호환) -->
+<button class="currency-toggle" id="currencyToggle" onclick="toggleCurrency()" style="display:none">💱</button>
+<div class="currency-widget" id="currencyWidget" style="display:none">
+  <div class="currency-title">💱 환율 계산기 <button class="currency-close" onclick="toggleCurrency()">✕</button></div>
+  <div class="currency-row"><input class="currency-input" id="eurInput" placeholder="0" oninput="calcCurrency('eur')"><span class="currency-label">EUR</span></div>
+  <div class="currency-row"><input class="currency-input" id="krwInput" placeholder="0" oninput="calcCurrency('krw')"><span class="currency-label">KRW</span></div>
+  <div class="currency-rate" id="currencyRate">국내여행 · 환율 미사용</div>
+</div>
+<!-- 모달들 -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title"><span id="modalTitleText">일정 편집</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">시간</div><input class="field-input" id="f-time" placeholder="09:00"></div>
+      <div class="field-group"><div class="field-label">카테고리</div><select class="field-select" id="f-type"><option value="spot">📍 관광</option><option value="food">🍴 맛집</option><option value="shopping">🛍️ 쇼핑</option><option value="flight">✈️ 항공/이동</option><option value="hotel">🏨 숙소</option><option value="move">🚌 교통</option><option value="etc">💡 기타</option></select></div>
+    </div>
+    <div class="place-search-wrap">
+      <span class="place-search-icon">🔍</span>
+      <input class="place-search-input" id="placeSearchInput" placeholder="장소 검색 (예: 아르떼뮤지엄)" oninput="onPlaceSearch(this.value)">
+      <div class="place-results" id="placeResults"></div>
+    </div>
+    <div class="field-group"><div class="field-label">제목</div><input class="field-input" id="f-title" placeholder="🎨 아르떼뮤지엄 제주"></div>
+    <div class="field-group"><div class="field-label">장소명 (Google 검색용 · 비워두면 제목 사용)</div><input class="field-input" id="f-placename" placeholder="예: ARTE MUSEUM JEJU"></div>
+    <div class="field-group"><div class="field-label">설명</div><textarea class="field-textarea" id="f-desc" placeholder="상세 내용"></textarea></div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">예약/참고 링크</div><input class="field-input" id="f-url" placeholder="https://..."></div>
+      <div class="field-group"><div class="field-label">예상 비용 (원)</div><input class="field-input" id="f-cost" placeholder="0" type="number"></div>
+    </div>
+    <div class="field-group"><div class="field-label">바우처/확인서 링크</div><input class="field-input" id="f-booking" placeholder="https://..."></div>
+    <div class="field-group"><div class="field-label">메모</div><input class="field-input" id="f-memo" placeholder="개인 메모"></div>
+    <div class="field-group"><div class="field-label">주의사항</div><input class="field-input" id="f-warn" placeholder="사전 예약 필수"></div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">위도</div><input class="field-input" id="f-lat" placeholder="33.5113" type="number" step="any"></div>
+      <div class="field-group"><div class="field-label">경도</div><input class="field-input" id="f-lng" placeholder="126.4914" type="number" step="any"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">예약 상태</div><select class="field-select" id="f-status"><option value="">— 해당없음</option><option value="unbooked">⬜ 미예약</option><option value="pending">🟡 진행중</option><option value="confirmed">✅ 확정</option><option value="cancelled">❌ 취소</option></select></div>
+      <div class="field-group"><div class="field-label">예약 마감일 (D-N 경고)</div><input class="field-input" id="f-deadline" type="date" placeholder="YYYY-MM-DD"></div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.08);margin-top:12px;padding-top:12px">
+      <div class="field-label" style="margin-bottom:8px;font-size:11px;color:#c4b5fd">📝 여행 후기 (여행 후 작성)</div>
+      <div class="field-group"><div class="field-label">별점</div><div id="f-rating-stars" style="display:flex;gap:4px;font-size:22px;cursor:pointer" onclick="setRating(event)">
+        <span data-r="1">☆</span><span data-r="2">☆</span><span data-r="3">☆</span><span data-r="4">☆</span><span data-r="5">☆</span>
+      </div></div>
+      <div class="field-group"><div class="field-label">후기</div><textarea class="field-textarea" id="f-review" placeholder="이 장소에 대한 후기를 남겨보세요"></textarea></div>
+      <div class="field-group"><div class="field-label">사진 URL (여러 개: 줄바꿈 구분)</div><textarea class="field-textarea" id="f-photos" placeholder="https://example.com/photo1.jpg" style="min-height:40px"></textarea></div>
+    </div>
+    <div class="modal-actions" id="modalActions"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">취소</button><button class="modal-btn modal-btn-save" onclick="saveItem()">저장</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="hotelModalOverlay" onclick="if(event.target===this)closeHotelModal()">
+  <div class="modal">
+    <div class="modal-title"><span>🏨 숙소 편집</span><button class="modal-close" onclick="closeHotelModal()">✕</button></div>
+    <div class="field-group"><div class="field-label">숙소 정보</div><textarea class="field-textarea" id="h-hotel" placeholder="숙소명, 예약번호"></textarea></div>
+    <div class="field-group"><div class="field-label">지역 제목</div><input class="field-input" id="h-region" placeholder="제주 서부 — 점보빌리지 & 돌고래 🐬"></div>
+    <div class="modal-actions"><button class="modal-btn modal-btn-cancel" onclick="closeHotelModal()">취소</button><button class="modal-btn modal-btn-save" onclick="saveHotel()">저장</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="dayModalOverlay" onclick="if(event.target===this)closeDayModal()">
+  <div class="modal">
+    <div class="modal-title"><span>📅 날짜 추가</span><button class="modal-close" onclick="closeDayModal()">✕</button></div>
+    <div class="field-row"><div class="field-group"><div class="field-label">날짜</div><input class="field-input" id="d-date" placeholder="6/5 (금)"></div><div class="field-group"><div class="field-label">테마색상</div><select class="field-select" id="d-color"><option value="#E8725A">도착/오렌지</option><option value="#2E86AB">바다/블루</option><option value="#F5A623">시내/옐로</option><option value="#10B981">자연/초록</option><option value="#888">귀국/회색</option></select></div></div>
+    <div class="field-group"><div class="field-label">지역/테마</div><input class="field-input" id="d-region" placeholder="제주 서부 — 점보빌리지 & 돌고래 🐬"></div>
+    <div class="field-group"><div class="field-label">숙소 (선택)</div><input class="field-input" id="d-hotel" placeholder="숙소명"></div>
+    <div class="modal-actions"><button class="modal-btn modal-btn-cancel" onclick="closeDayModal()">취소</button><button class="modal-btn modal-btn-save" onclick="saveDay()">추가</button></div>
+  </div>
+</div>
+<div class="photo-modal" id="photoModal" onclick="this.classList.remove('visible')"><img src=""></div>
+<div class="swipe-indicator" id="swipeIndicator"></div>
+<div class="toast" id="toast"></div>
+<script src="trip-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
