@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "trips": {
+      "spain-2026": {
+        ".read":  "auth != null && (auth.token.email == 'rachel506wnsgk@gmail.com' || auth.token.email == '3hosungo@gmail.com')",
+        ".write": "auth != null && (auth.token.email == 'rachel506wnsgk@gmail.com' || auth.token.email == '3hosungo@gmail.com')"
+      },
+      "jeju-2026": {
+        ".read":  "auth != null && (auth.token.email == '3hosungo@gmail.com' || auth.token.email == 'h2eungil24@gmail.com')",
+        ".write": "auth != null && (auth.token.email == '3hosungo@gmail.com' || auth.token.email == 'h2eungil24@gmail.com')"
+      },
+      "$other_trip": {
+        ".read":  "auth != null && auth.token.email == '3hosungo@gmail.com'",
+        ".write": "auth != null && auth.token.email == '3hosungo@gmail.com'"
+      }
+    },
+    "travel": {
+      ".read":  "auth != null && (auth.token.email == 'rachel506wnsgk@gmail.com' || auth.token.email == '3hosungo@gmail.com')",
+      ".write": "auth != null && (auth.token.email == 'rachel506wnsgk@gmail.com' || auth.token.email == '3hosungo@gmail.com')"
+    },
+    "travel-jeju": {
+      ".read":  "auth != null && (auth.token.email == '3hosungo@gmail.com' || auth.token.email == 'h2eungil24@gmail.com')",
+      ".write": "auth != null && (auth.token.email == '3hosungo@gmail.com' || auth.token.email == 'h2eungil24@gmail.com')"
+    }
+  }
+}

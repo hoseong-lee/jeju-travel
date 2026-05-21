@@ -781,22 +781,54 @@ function calcTaxRefund(){/* noop: 제주는 국내여행 */}
 function renderTaxRefundWidget(){return''}
 
 // ══════════ TRIP SELECTOR ══════════
+// 로그인된 사용자가 해당 trip을 볼 수 있는지 (meta.allowedEmails 기반)
+function canAccessTrip(trip){
+  if(!trip||!trip.meta)return true;
+  const allow=trip.meta.allowedEmails;
+  if(!allow||!allow.length)return true; // 메타에 명시 없으면 공개
+  if(!fbUser||!fbUser.email)return false;
+  return allow.includes(fbUser.email)
+}
 function openTripSelector(){
   const el=document.getElementById('tripSelectorOverlay');
   if(!el)return;
-  const list=TRIPS.map(t=>{const m=t.meta||{};const cnt=(t.days||[]).reduce((s,d)=>s+(d.schedule||[]).length,0);const active=t.id===currentTripId?' trip-card-active':'';return`<div class="trip-card${active}" style="border-color:${m.themeColor||'#888'}33;background:${m.themeColor||'#888'}11" onclick="selectTrip('${t.id}')">
-    <div class="trip-card-emoji">${m.coverEmoji||'✈️'}</div>
-    <div class="trip-card-body">
-      <div class="trip-card-name" style="color:${m.themeColor||'#f1f5f9'}">${esc(m.name||t.id)}</div>
-      <div class="trip-card-date">${esc(m.dateRange||'')}</div>
-      <div class="trip-card-stats">${(t.days||[]).length}일 · ${cnt}개 일정</div>
-    </div>
-  </div>`}).join('');
-  el.querySelector('.trip-selector-list').innerHTML=list;
+  // 익명 안내 vs 로그인 사용자 분리
+  let bodyHtml='';
+  if(!fbUser){
+    bodyHtml=`<div class="trip-login-prompt">
+      <div class="trip-login-icon">🔐</div>
+      <div class="trip-login-msg">여행 데이터는 로그인 후 확인할 수 있어요.</div>
+      <button class="auth-btn auth-btn-login" onclick="signIn()">🔑 Google 로그인</button>
+    </div>`
+  }else{
+    const accessible=TRIPS.filter(t=>canAccessTrip(t));
+    const restricted=TRIPS.filter(t=>!canAccessTrip(t));
+    const cardHtml=t=>{const m=t.meta||{};const cnt=(t.days||[]).reduce((s,d)=>s+(d.schedule||[]).length,0);const active=t.id===currentTripId?' trip-card-active':'';return`<div class="trip-card${active}" style="border-color:${m.themeColor||'#888'}33;background:${m.themeColor||'#888'}11" onclick="selectTrip('${t.id}')">
+      <div class="trip-card-emoji">${m.coverEmoji||'✈️'}</div>
+      <div class="trip-card-body">
+        <div class="trip-card-name" style="color:${m.themeColor||'#f1f5f9'}">${esc(m.name||t.id)}</div>
+        <div class="trip-card-date">${esc(m.dateRange||'')}</div>
+        <div class="trip-card-stats">${(t.days||[]).length}일 · ${cnt}개 일정</div>
+      </div>
+    </div>`};
+    const lockedHtml=t=>{const m=t.meta||{};return`<div class="trip-card trip-card-locked" title="이 여행은 멤버 전용입니다">
+      <div class="trip-card-emoji" style="opacity:.4">${m.coverEmoji||'✈️'}</div>
+      <div class="trip-card-body">
+        <div class="trip-card-name" style="color:#64748b">🔒 ${esc(m.name||t.id)}</div>
+        <div class="trip-card-date" style="color:#475569">${esc(m.dateRange||'')}</div>
+        <div class="trip-card-stats" style="color:#475569">멤버 전용</div>
+      </div>
+    </div>`};
+    bodyHtml=accessible.map(cardHtml).join('')+restricted.map(lockedHtml).join('');
+    if(!accessible.length)bodyHtml=`<div class="trip-login-prompt"><div class="trip-login-icon">🚫</div><div class="trip-login-msg">${esc(fbUser.email)} 계정으로 접근 가능한 여행이 없어요.</div></div>`+bodyHtml;
+  }
+  el.querySelector('.trip-selector-list').innerHTML=bodyHtml;
   el.classList.add('visible')
 }
 function closeTripSelector(){const el=document.getElementById('tripSelectorOverlay');if(el)el.classList.remove('visible')}
 function selectTrip(tripId){
+  const trip=TRIPS.find(t=>t.id===tripId);
+  if(!canAccessTrip(trip)){showToast('이 여행에 접근 권한이 없어요');return}
   if(!setCurrentTrip(tripId))return;
   migrateStatus(DAYS);
   currentDay=0;
@@ -829,6 +861,8 @@ function applyTripMetaToUI(){
   document.title=(m.coverEmoji?m.coverEmoji+' ':'')+(m.shortName||m.name||'여행 플래너')+' · 플래너';
   const titleEl=document.querySelector('.header-title');if(titleEl)titleEl.textContent=m.name||'여행 플래너';
   const dateEl=document.querySelector('.header-date');if(dateEl){const ddayBadge='<span class="dday" id="ddayBadge"></span>';dateEl.innerHTML=esc(m.dateRange||'')+' '+ddayBadge}
+  // header-sub에 현재 trip 이름 + 변경 링크 노출 (사용자가 selector를 못 찾는 문제 해결)
+  const subEl=document.querySelector('.header-sub');if(subEl)subEl.innerHTML=`<span style="opacity:.6">Travel Planner</span> · <button class="trip-switch-link" onclick="openTripSelector()">${esc(m.shortName||m.name||'여행')} 변경 ▾</button>`;
   const tipsBody=document.querySelector('#tipsSection .tips-body');if(tipsBody&&m.tipsHtml)tipsBody.innerHTML=m.tipsHtml;
   // 헤더 컬러 (theme color)
   document.documentElement.style.setProperty('--trip-color',m.themeColor||'#E8725A');
